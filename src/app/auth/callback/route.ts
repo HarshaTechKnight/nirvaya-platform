@@ -36,7 +36,9 @@ export async function GET(request: Request) {
       if (!profile?.role) return NextResponse.redirect(`${origin}/auth/select-role`)
       if (!profile?.is_profile_complete) return NextResponse.redirect(`${origin}/auth/complete-profile`)
 
-      return NextResponse.redirect(`${origin}/profile`)
+      if (profile.role === 'mentor') return NextResponse.redirect(`${origin}/mentors/feed`)
+      if (profile.role === 'investor') return NextResponse.redirect(`${origin}/investors`)
+      return NextResponse.redirect(`${origin}/founders/feed`)
     }
   }
 

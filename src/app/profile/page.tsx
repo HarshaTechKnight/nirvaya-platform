@@ -4,7 +4,11 @@ import ProfileView from './ProfileView'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) redirect('/auth/login')
 
   const { data: profile } = await supabase
@@ -16,5 +20,5 @@ export default async function ProfilePage() {
   if (!profile?.role) redirect('/auth/select-role')
   if (!profile?.is_profile_complete) redirect('/auth/complete-profile')
 
-  return <ProfileView profile={profile}/>
+  return <ProfileView profile={profile} />
 }

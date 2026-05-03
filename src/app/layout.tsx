@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Nirvaya — Institutional Curator for AP Innovation",
+  title: "Co-Flare — Institutional Curator for AP Innovation",
   description: "The institutional platform connecting Founders, Mentors, and Investors across Andhra Pradesh.",
 };
 
