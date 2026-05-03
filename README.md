@@ -1,4 +1,4 @@
-# Nirvaya.co
+# Co-Flare
 
 > The Institutional Curator for Andhra Pradesh's Startup Ecosystem
 
