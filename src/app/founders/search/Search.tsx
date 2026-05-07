@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import TopBar from '@/components/TopBar'
 
 const FILTERS = [
@@ -57,9 +58,9 @@ export default function Search({ initialProfiles, currentUser }: { initialProfil
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(p => (
-            <div key={p.id} className="bg-white border border-line/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div key={p.id} className="bg-white border border-line/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col">
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-teal-dark text-cream flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-teal-dark text-cream flex items-center justify-center text-sm font-semibold shrink-0">
                   {getInitials(p.full_name)}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -67,7 +68,7 @@ export default function Search({ initialProfiles, currentUser }: { initialProfil
                   <div className="text-xs text-muted truncate">{p.headline || p.company}</div>
                 </div>
               </div>
-              <span className="inline-block text-[9px] font-bold tracking-wider px-2 py-0.5 rounded bg-teal-light text-teal-dark mb-3">
+              <span className="inline-block text-[9px] font-bold tracking-wider px-2 py-0.5 rounded bg-teal-light text-teal-dark mb-3 self-start">
                 {(p.role || '').toUpperCase()}
               </span>
               {p.bio && (
@@ -83,18 +84,27 @@ export default function Search({ initialProfiles, currentUser }: { initialProfil
                 </div>
               )}
               {p.location && (
-                <div className="text-xs text-muted mb-3">📍 {p.location}</div>
+                <div className="text-xs text-muted mb-3">{p.location}</div>
               )}
-              <button
-                onClick={() => setConnected(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
-                className={`w-full py-2 rounded-lg text-xs font-medium transition-colors ${
-                  connected[p.id]
-                    ? 'bg-teal-light text-teal-dark border border-teal'
-                    : 'bg-teal text-cream hover:bg-teal-dark'
-                }`}
-              >
-                {connected[p.id] ? '✓ Connected' : 'Connect'}
-              </button>
+
+              <div className="flex gap-2 mt-auto">
+                <button
+                  onClick={() => setConnected(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    connected[p.id]
+                      ? 'bg-teal-light text-teal-dark border border-teal'
+                      : 'bg-teal text-cream hover:bg-teal-dark'
+                  }`}
+                >
+                  {connected[p.id] ? 'Connected' : 'Connect'}
+                </button>
+                <Link
+                  href={`/founders/messaging?to=${p.id}`}
+                  className="px-3 py-2 border border-teal text-teal rounded-lg text-xs font-medium hover:bg-teal-light text-center transition-colors"
+                >
+                  Message
+                </Link>
+              </div>
             </div>
           ))}
           {filtered.length === 0 && (

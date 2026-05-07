@@ -3,11 +3,12 @@ import { redirect } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 
 const FOUNDER_NAV = [
-  { label: 'Feed', icon: '📰', href: '/founders/feed' },
-  { label: 'Search', icon: '🔍', href: '/founders/search' },
-  { label: 'Profile', icon: '👤', href: '/profile' },
-  { label: 'Notifications', icon: '🔔', href: '/founders/notifications' },
-  { label: 'Grow Unit', icon: '📈', href: '/founders/grow-unit' },
+  { label: 'Feed', icon: 'F', href: '/founders/feed' },
+  { label: 'Messaging', icon: 'M', href: '/founders/messaging' },
+  { label: 'Search', icon: 'S', href: '/founders/search' },
+  { label: 'Profile', icon: 'P', href: '/profile' },
+  { label: 'Notifications', icon: 'N', href: '/founders/notifications' },
+  { label: 'Grow Unit', icon: 'G', href: '/founders/grow-unit' },
 ]
 
 export default async function FoundersLayout({ children }: { children: React.ReactNode }) {

@@ -35,7 +35,7 @@ export default function LandingPage() {
             of Innovation
           </h1>
           <p className="text-ink-soft text-lg leading-relaxed max-w-lg mb-8">
-            A unified platform for Founders, Mentors, and Investors to connect, grow, and secure funding in the heart of AP.
+            A unified platform where India's Founders, Mentors, and Investors connect, grow, and fund the future.
           </p>
           <div className="flex gap-3">
             <Link href="/auth/login" className="px-6 py-3 bg-teal text-cream font-medium rounded hover:bg-teal-dark transition-colors">
@@ -53,7 +53,7 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="text-sm font-semibold text-ink">500+ Active Startups</div>
-              <div className="text-xs text-muted">Across Visakhapatnam &amp; Amaravati</div>
+              <div className="text-xs text-muted">Across India’s cities—tier 1, tier 2, &amp; beyond</div>
             </div>
           </div>
         </div>
@@ -86,7 +86,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 bg-teal-light text-teal flex items-center justify-center rounded-lg mb-5 text-lg">🚀</div>
               <h3 className="font-display text-2xl text-ink mb-2">Founder &amp; Co-Founder</h3>
               <p className="text-sm text-ink-soft leading-relaxed max-w-xs mb-4">
-                Access Amaravati's central funding pool, find your perfect technical match, and scale your vision.
+                Access India's central funding pools, find your perfect technical match, and scale your vision.
               </p>
               <div className="flex gap-2">
                 <span className="px-3 py-1 bg-white border border-line text-xs text-ink-soft rounded-full">Grant Support</span>
@@ -109,7 +109,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 bg-cream/20 flex items-center justify-center rounded-lg mb-5 text-lg">💰</div>
               <h3 className="font-display text-2xl mb-2">Investor</h3>
               <p className="text-sm text-cream/80 leading-relaxed mb-6">
-                Early access to vetted, government-recognized startups. Diversify your portfolio with AP's finest.
+                Early access to vetted, government-recognized startups. Diversify your portfolio with India's finest.
               </p>
               <button className="bg-cream text-teal px-5 py-2 rounded font-medium text-sm hover:bg-white transition-colors">
                 Investor Early Access
@@ -122,7 +122,7 @@ export default function LandingPage() {
                 <div className="w-10 h-10 bg-teal-light text-teal flex items-center justify-center rounded-lg mb-5 text-lg">🎓</div>
                 <h3 className="font-display text-2xl text-ink mb-2">Mentor</h3>
                 <p className="text-sm text-ink-soft leading-relaxed">
-                  Guide the next generation. Join our elite circle of industry veterans and academic leaders from Visakhapatnam's premier institutions.
+                  Guide the next generation. Join our elite circle of industry veterans and academic leaders from India's premier institutions.
                 </p>
                 <button className="mt-4 px-4 py-2 bg-rust text-cream text-sm font-medium rounded">Apply as Mentor</button>
               </div>
@@ -178,7 +178,7 @@ export default function LandingPage() {
               <tbody className="text-sm">
                 {[
                   { n: 'VizagAqua Tech', s: 'Agri-Tech', st: 'Series A', g: '+124%', c: 'bg-teal-light text-teal-dark', cl: 'Funding Open' },
-                  { n: 'Amaravati Solar', s: 'Clean Energy', st: 'Seed', g: '+85%', c: 'bg-cream-dark text-ink-soft', cl: 'Grant Review' },
+                  { n: 'Gujarat Solar', s: 'Clean Energy', st: 'Seed', g: '+85%', c: 'bg-cream-dark text-ink-soft', cl: 'Grant Review' },
                   { n: 'Krishna Logistics', s: 'Supply Chain', st: 'MVP', g: '+42%', c: 'bg-teal-light text-teal-dark', cl: 'Matching' },
                 ].map((r, i) => (
                   <tr key={i} className="border-b border-line/40 last:border-0">
@@ -200,10 +200,10 @@ export default function LandingPage() {
       {/* ── CTA ── */}
       <section className="bg-teal text-cream py-16 px-8 text-center">
         <h2 className="font-display text-4xl md:text-5xl mb-4">
-          Ready to build the future of Andhra Pradesh?
+          Ready to build the future of India? 
         </h2>
         <p className="text-cream/80 max-w-xl mx-auto mb-8">
-          Join thousands of visionary leaders in Visakhapatnam, Amaravati, and beyond. Your institutional journey starts here.
+          Connect with visionary leaders from every corner of the country. Your journey starts here.
         </p>
         <div className="flex gap-3 justify-center">
           <Link href="/auth/login" className="px-6 py-3 bg-cream text-teal rounded font-medium hover:bg-white transition-colors">
@@ -225,7 +225,7 @@ export default function LandingPage() {
             </p>
           </div>
           {[
-            { title: 'Innovation Hubs', items: ['Visakhapatnam (IT Hub)', 'Amaravati (FinTech)', 'Tirupati (Smart City)', 'Kakinada (Ports & Logistics)'] },
+            { title: 'Innovation Hubs', items: ['Visakhapatnam (IT Hub)', 'Bengaluru (FinTech)', 'Gujarat (Smart City)', 'Uttar Pradesh (Ports & Logistics)'] },
             { title: 'Quick Links', items: ['Grant Applications', 'Investor Network', 'Mentorship Program', 'Incubator Directory'] },
             { title: 'Government Support', items: ['AP Innovation Society', 'Startup Policy 2024', 'Tax Incentives', 'Seed Capital Fund'] },
           ].map(col => (

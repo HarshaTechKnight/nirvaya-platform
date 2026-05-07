@@ -43,29 +43,31 @@ export default function ProfileView({ profile }: { profile: Profile }) {
   }
 
   function getNavForRole(role?: string) {
-    if (role === 'mentor') {
-      return [
-        { label: 'Feed', icon: 'F', href: '/mentors/feed' },
-        { label: 'Find Founders', icon: 'S', href: '/mentors/search' },
-        { label: 'Profile', icon: 'P', href: '/profile', active: true },
-        { label: 'Notifications', icon: 'N', href: '/mentors/notifications' },
-        { label: 'Grow Unit', icon: 'G', href: '/mentors/grow-unit' },
-      ]
-    }
-    if (role === 'investor') {
-      return [
-        { label: 'Investor Portal', icon: 'I', href: '/investors' },
-        { label: 'Profile', icon: 'P', href: '/profile', active: true },
-      ]
-    }
+  if (role === 'mentor') {
     return [
-      { label: 'Feed', icon: 'F', href: '/founders/feed' },
-      { label: 'Search', icon: 'S', href: '/founders/search' },
+      { label: 'Feed', icon: 'F', href: '/mentors/feed' },
+      { label: 'Messaging', icon: 'M', href: '/mentors/messaging' },
+      { label: 'Find Founders', icon: 'S', href: '/mentors/search' },
       { label: 'Profile', icon: 'P', href: '/profile', active: true },
-      { label: 'Notifications', icon: 'N', href: '/founders/notifications' },
-      { label: 'Grow Unit', icon: 'G', href: '/founders/grow-unit' },
+      { label: 'Notifications', icon: 'N', href: '/mentors/notifications' },
+      { label: 'Grow Unit', icon: 'G', href: '/mentors/grow-unit' },
     ]
   }
+  if (role === 'investor') {
+    return [
+      { label: 'Investor Portal', icon: 'I', href: '/investors' },
+      { label: 'Profile', icon: 'P', href: '/profile', active: true },
+    ]
+  }
+  return [
+    { label: 'Feed', icon: 'F', href: '/founders/feed' },
+    { label: 'Messaging', icon: 'M', href: '/founders/messaging' },
+    { label: 'Search', icon: 'S', href: '/founders/search' },
+    { label: 'Profile', icon: 'P', href: '/profile', active: true },
+    { label: 'Notifications', icon: 'N', href: '/founders/notifications' },
+    { label: 'Grow Unit', icon: 'G', href: '/founders/grow-unit' },
+  ]
+}
 
   function getPortalLabel(role?: string) {
     if (role === 'mentor') return 'Mentors Portal'
