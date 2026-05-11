@@ -1,46 +1,52 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
 
+  // Important: use forwarded host for Vercel/Netlify
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+
   if (code) {
-    const cookieStore = await cookies()
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
+    if (!error && data.user) {
+      // Decide base URL for redirect
+      let redirectBase: string
+      if (isLocalEnv) {
+        redirectBase = origin
+      } else if (forwardedHost) {
+        redirectBase = 'https://' + forwardedHost
+      } else {
+        redirectBase = origin
       }
-    )
 
-    const { data: { user } } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (user) {
+      // Check profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, is_profile_complete')
-        .eq('id', user.id)
+        .eq('id', data.user.id)
         .single()
 
-      if (!profile?.role) return NextResponse.redirect(`${origin}/auth/select-role`)
-      if (!profile?.is_profile_complete) return NextResponse.redirect(`${origin}/auth/complete-profile`)
-
-      if (profile.role === 'mentor') return NextResponse.redirect(`${origin}/mentors/feed`)
-      if (profile.role === 'investor') return NextResponse.redirect(`${origin}/investors`)
-      return NextResponse.redirect(`${origin}/founders/feed`)
+      if (!profile?.role) {
+        return NextResponse.redirect(redirectBase + '/auth/select-role')
+      }
+      if (!profile?.is_profile_complete) {
+        return NextResponse.redirect(redirectBase + '/auth/complete-profile')
+      }
+      if (profile.role === 'mentor') {
+        return NextResponse.redirect(redirectBase + '/mentors/feed')
+      }
+      if (profile.role === 'investor') {
+        return NextResponse.redirect(redirectBase + '/investors')
+      }
+      return NextResponse.redirect(redirectBase + '/founders/feed')
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/login`)
+  // Error
+  return NextResponse.redirect((process.env.NEXT_PUBLIC_SITE_URL || origin) + '/auth/login?error=auth')
 }
