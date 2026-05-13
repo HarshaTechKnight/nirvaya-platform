@@ -213,24 +213,24 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
 
   function getNavForRole(role: string) {
     if (role === 'mentor') return [
-      { label: 'Feed', icon: 'F', href: '/mentors/feed' },
-      { label: 'Messages', icon: 'M', href: '/mentors/messaging' },
-      { label: 'Discover', icon: 'D', href: '/mentors/search' },
-      { label: 'Profile', icon: 'P', href: '/profile' },
-      { label: 'Alerts', icon: 'A', href: '/mentors/notifications' },
-      { label: 'Grow', icon: 'G', href: '/mentors/grow-unit' },
+      { label: 'Feed', icon: '📰', href: '/mentors/feed' },
+      { label: 'Messages', icon: '💬', href: '/mentors/messaging' },
+      { label: 'Discover', icon: '🔍', href: '/mentors/search' },
+      { label: 'Profile', icon: '👤', href: '/profile' },
+      { label: 'Alerts', icon: '🔔', href: '/mentors/notifications' },
+      { label: 'Grow', icon: '📈', href: '/mentors/grow-unit' },
     ]
     if (role === 'investor') return [
-      { label: 'Dashboard', icon: 'D', href: '/investors' },
-      { label: 'Profile', icon: 'P', href: '/profile' },
+      { label: 'Dashboard', icon: '💎', href: '/investors' },
+      { label: 'Profile', icon: '👤', href: '/profile' },
     ]
     return [
-      { label: 'Feed', icon: 'F', href: '/founders/feed' },
-      { label: 'Messages', icon: 'M', href: '/founders/messaging' },
-      { label: 'Discover', icon: 'D', href: '/founders/search' },
-      { label: 'Profile', icon: 'P', href: '/profile' },
-      { label: 'Alerts', icon: 'A', href: '/founders/notifications' },
-      { label: 'Grow', icon: 'G', href: '/founders/grow-unit' },
+      { label: 'Feed', icon: '📰', href: '/founders/feed' },
+      { label: 'Messages', icon: '💬', href: '/founders/messaging' },
+      { label: 'Discover', icon: '🔍', href: '/founders/search' },
+      { label: 'Profile', icon: '👤', href: '/profile' },
+      { label: 'Alerts', icon: '🔔', href: '/founders/notifications' },
+      { label: 'Grow', icon: '📈', href: '/founders/grow-unit' },
     ]
   }
 
