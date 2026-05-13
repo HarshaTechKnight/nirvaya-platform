@@ -137,7 +137,6 @@ export default function Messaging({
         (payload) => { 
           const newMsg = payload.new as Message
           setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg])
-          // Simulate typing indicator
           setTyping(true)
           setTimeout(() => setTyping(false), 2000)
         }
@@ -170,11 +169,24 @@ export default function Messaging({
     <div className="flex flex-col h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <TopBar title="Messages" profile={currentUser} />
       
-      <div className="flex flex-1 w-full overflow-hidden min-h-0">
-        {/* CHAT LIST */}
-        <div className={`${showMobileList ? 'flex' : 'hidden'} md:flex w-full md:w-80 lg:w-96 bg-white shadow-xl flex-col h-full relative`}>
+      {/* Main container with proper height management */}
+      <div className="flex flex-1 w-full overflow-hidden relative">
+        
+        {/* CHAT LIST - Mobile friendly */}
+        <div className={`
+          ${showMobileList ? 'translate-x-0' : '-translate-x-full'} 
+          md:translate-x-0
+          absolute md:relative
+          top-0 left-0
+          w-full md:w-80 lg:w-96 
+          h-full
+          bg-white shadow-xl 
+          flex flex-col 
+          transition-transform duration-300 ease-in-out
+          z-20 md:z-auto
+        `}>
           {/* Header */}
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden shrink-0">
             <div className="h-1 bg-gradient-to-r from-teal-500 via-purple-500 to-teal-500"></div>
             <div className="px-5 py-6 border-b border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -311,8 +323,19 @@ export default function Messaging({
           </div>
         </div>
 
-        {/* CHAT WINDOW */}
-        <div className={`${!showMobileList ? 'flex' : 'hidden'} md:flex flex-1 flex-col h-full bg-gradient-to-br from-gray-50 to-white relative`}>
+        {/* CHAT WINDOW - Mobile optimized with visible input */}
+        <div className={`
+          ${!showMobileList ? 'translate-x-0' : 'translate-x-full'}
+          md:translate-x-0
+          absolute md:relative
+          top-0 left-0
+          w-full md:flex-1
+          h-full
+          bg-gradient-to-br from-gray-50 to-white
+          flex flex-col
+          transition-transform duration-300 ease-in-out
+          z-10 md:z-auto
+        `}>
           {!activeChat ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6">
               <div className="relative mb-6">
@@ -363,8 +386,8 @@ export default function Messaging({
                 </div>
               </div>
 
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+              {/* Messages Area - Takes remaining space */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 min-h-0">
                 {activeMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-100 to-purple-100 flex items-center justify-center mb-3">
@@ -438,7 +461,7 @@ export default function Messaging({
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area - ALWAYS VISIBLE */}
+              {/* Input Area - ALWAYS VISIBLE at bottom */}
               <div className="bg-white border-t border-gray-200 p-3 shadow-lg shrink-0">
                 <div className="flex items-end gap-2">
                   <div className="flex-1 relative">
