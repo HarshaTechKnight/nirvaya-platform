@@ -62,7 +62,6 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
     linkedin_url: '',
     domains: [],
     skills: [],
-    ...profile
   })
   const [newSkill, setNewSkill] = useState('')
   const [newDomain, setNewDomain] = useState('')
@@ -109,11 +108,11 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
     )
   }
 
-  // After early return, TypeScript knows profile is defined
-  const profileId = profile.id // This is now safe and non-null
+  // SAFE: After the early return, profile is guaranteed to exist and have an id
+  const PROFILE_ID = profile.id // Use uppercase to emphasize it's safe
 
   async function handleShare() {
-    const url = window.location.origin + '/profile/' + profileId
+    const url = window.location.origin + '/profile/' + PROFILE_ID
     try {
       await navigator.clipboard.writeText(url)
       setShowShareToast(true)
@@ -125,8 +124,6 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
   }
 
   async function handleSave() {
-    if (!profileId) return // Extra guard clause
-    
     setLoading(true)
     const { error } = await supabase
       .from('profiles')
@@ -140,7 +137,7 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
         domains: editedProfile.domains || [],
         skills: editedProfile.skills || [],
       } as any)
-      .eq('id', profileId) // FIX 1: Use profileId instead of profile.id
+      .eq('id', PROFILE_ID) // FIXED: Use PROFILE_ID instead of profile.id
 
     if (!error) {
       setIsEditing(false)
@@ -153,13 +150,11 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
   }
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!profileId) return // Guard clause
-    
     const file = e.target.files?.[0]
     if (!file) return
 
     const fileExt = file.name.split('.').pop()
-    const fileName = `${profileId}-${Date.now()}.${fileExt}`
+    const fileName = `${PROFILE_ID}-${Date.now()}.${fileExt}`
     const filePath = `avatars/${fileName}`
 
     const { error: uploadError } = await supabase.storage
@@ -178,7 +173,7 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ avatar_url: publicUrl } as any)
-      .eq('id', profileId)
+      .eq('id', PROFILE_ID) // FIXED: Use PROFILE_ID instead of profile.id
 
     if (!updateError) {
       setShowSaveToast(true)
@@ -533,21 +528,16 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
                             </button>
                           </span>
                         ))}
-                        {(!editedProfile.skills || editedProfile.skills.length === 0) && (
-                          <p className="text-sm text-gray-400">No skills added yet. Add your first skill above.</p>
-                        )}
                       </div>
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {/* FIX 2: Use (editedProfile.skills || []).map() instead of editedProfile.skills.map() */}
-                      {(editedProfile.skills || []).length > 0 ? (
-                        (editedProfile.skills || []).map(skill => (
-                          <span key={skill} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm border border-gray-200">
-                            {skill}
-                          </span>
-                        ))
-                      ) : (
+                      {(editedProfile.skills || []).map(skill => (
+                        <span key={skill} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm border border-gray-200">
+                          {skill}
+                        </span>
+                      ))}
+                      {(!editedProfile.skills || editedProfile.skills.length === 0) && (
                         <p className="text-sm text-gray-400">No skills added yet</p>
                       )}
                     </div>
@@ -589,21 +579,16 @@ export default function ProfileView({ profile }: { profile: Profile | null }) {
                             </button>
                           </span>
                         ))}
-                        {(!editedProfile.domains || editedProfile.domains.length === 0) && (
-                          <p className="text-sm text-gray-400">No domains added yet. Add your first domain above.</p>
-                        )}
                       </div>
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {/* FIX 3: Use (editedProfile.domains || []).map() instead of editedProfile.domains.map() */}
-                      {(editedProfile.domains || []).length > 0 ? (
-                        (editedProfile.domains || []).map(domain => (
-                          <span key={domain} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm border border-purple-200">
-                            {domain}
-                          </span>
-                        ))
-                      ) : (
+                      {(editedProfile.domains || []).map(domain => (
+                        <span key={domain} className="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm border border-purple-200">
+                          {domain}
+                        </span>
+                      ))}
+                      {(!editedProfile.domains || editedProfile.domains.length === 0) && (
                         <p className="text-sm text-gray-400">No domains added yet</p>
                       )}
                     </div>
