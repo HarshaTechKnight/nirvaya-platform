@@ -7,7 +7,8 @@ const FOUNDER_NAV = [
   { label: 'Messaging', icon: '💬', href: '/founders/messaging' },
   { label: 'Search', icon: '🔍', href: '/founders/search' },
   { label: 'Profile', icon: '👤', href: '/profile' },
-  { label: 'Notifications', icon: '🔔', href: '/founders/notifications' }
+  { label: 'Notifications', icon: '🔔', href: '/founders/notifications' },
+  { label: 'Grow', icon: '📈', href: '/founders/grow-unit' },
 ]
 
 export default async function FoundersLayout({ children }: { children: React.ReactNode }) {

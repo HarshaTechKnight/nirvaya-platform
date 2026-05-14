@@ -1,21 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import GrowUnit from './GrowUnit'
+import GrowUnitMentor from './GrowUnitMentor'
+
+export const dynamic = 'force-dynamic'
 
 export default async function MentorGrowUnitPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: courses } = await supabase
-    .from('courses')
-    .select('*')
-    .eq('mentor_id', user!.id)
-    .order('created_at', { ascending: false })
-
-  const { data: journals } = await supabase
-    .from('journals')
-    .select('*')
-    .eq('mentor_id', user!.id)
-    .order('created_at', { ascending: false })
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -23,5 +13,23 @@ export default async function MentorGrowUnitPage() {
     .eq('id', user!.id)
     .single()
 
-  return <GrowUnit initialCourses={courses || []} initialJournals={journals || []} profile={profile}/>
+  const { data: myCourses } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('mentor_id', user!.id)
+    .order('created_at', { ascending: false })
+
+  const { data: myJournals } = await supabase
+    .from('journals')
+    .select('*')
+    .eq('mentor_id', user!.id)
+    .order('created_at', { ascending: false })
+
+  return (
+    <GrowUnitMentor
+      profile={profile}
+      initialCourses={myCourses || []}
+      initialJournals={myJournals || []}
+    />
+  )
 }
