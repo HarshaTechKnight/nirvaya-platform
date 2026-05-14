@@ -1,6 +1,6 @@
 # Co-Flare
 
-> The Institutional Curator for Andhra Pradesh's Startup Ecosystem
+> The Institutional Curator for India's Startup Ecosystem
 
 A unified platform connecting Founders, Co-Founders, Freelancers, Business Owners, Mentors, and Investors across India. Built to remove friction between talent, capital, and knowledge in India.
 
