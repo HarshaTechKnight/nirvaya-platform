@@ -1,8 +1,8 @@
 # Co-Flare
 
-> The Institutional Curator for Andhra Pradesh's Startup Ecosystem
+> The Institutional Curator for India's Startup Ecosystem
 
-A unified platform connecting Founders, Co-Founders, Freelancers, Business Owners, Mentors, and Investors across Andhra Pradesh, India. Built to remove friction between talent, capital, and knowledge in Tier 2 India.
+A unified platform connecting Founders, Co-Founders, Freelancers, Business Owners, Mentors, and Investors across India. Built to remove friction between talent, capital, and knowledge in India.
 
 **Status:** Active Development — Month 1 MVP
 **Built by:** Surendra P. & Sri Harsha M. | Nirvaya Consultancy
@@ -37,7 +37,7 @@ A unified platform connecting Founders, Co-Founders, Freelancers, Business Owner
 
 ## 1. Overview
 
-Nirvaya is a web-based startup ecosystem platform purpose-built for Andhra Pradesh. The platform is structured around three dedicated portals:
+Nirvaya is a web-based startup ecosystem platform purpose-built for India. The platform is structured around three dedicated portals:
 
 - **Founders Portal** — shared by Founders, Co-Founders, Freelancers, and Business Owners
 - **Mentors Portal** — for experienced professionals guiding the ecosystem
