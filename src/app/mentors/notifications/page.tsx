@@ -1,9 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import Notifications from '../../founders/notifications/Notifications'
+import Notifications from './Notifications'
 
-export const dynamic = 'force-dynamic'
-
-export default async function MentorNotificationsPage() {
+export default async function NotificationsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -12,7 +10,7 @@ export default async function MentorNotificationsPage() {
     .select('*')
     .eq('user_id', user!.id)
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(30)
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -20,5 +18,5 @@ export default async function MentorNotificationsPage() {
     .eq('id', user!.id)
     .single()
 
-  return <Notifications initialNotifs={notifs || []} profile={profile} />
+  return <Notifications initialNotifs={notifs || []} profile={profile}/>
 }

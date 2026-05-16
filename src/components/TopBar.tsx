@@ -99,7 +99,7 @@ export default function TopBar({ title, profile }: { title: string; profile: any
         {title}
       </h1>
 
-      {/* Search Section */}
+      {/* Search */}
       <div className="flex-1 flex items-center gap-2">
         <button onClick={() => { setShowMobileSearch(!showMobileSearch); if (!showMobileSearch) setTimeout(() => searchRef.current?.focus(), 100) }}
           className={`sm:hidden w-9 h-9 rounded-xl hover:bg-cream-dark/50 flex items-center justify-center text-muted shrink-0 ${showMobileSearch ? 'hidden' : 'flex'}`}>
@@ -180,15 +180,17 @@ export default function TopBar({ title, profile }: { title: string; profile: any
           )}
         </div>
 
-        {/* User Menu */}
+        {/* User Menu - Using div instead of button to avoid nesting */}
         <div className="relative" ref={menuRef}>
-          <button onClick={() => setShowMenu(!showMenu)}
-            className="flex items-center gap-1 sm:gap-1.5 pl-1 sm:pl-1.5 pr-0.5 sm:pr-1 py-1 rounded-xl hover:bg-cream-dark/40 transition-all">
+          <div
+            onClick={() => setShowMenu(!showMenu)}
+            className="flex items-center gap-1 sm:gap-1.5 pl-1 sm:pl-1.5 pr-0.5 sm:pr-1 py-1 rounded-xl hover:bg-cream-dark/40 transition-all cursor-pointer"
+          >
             <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br ${userGradient} flex items-center justify-center text-cream text-[9px] sm:text-[10px] font-semibold shadow-md overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-teal/20 transition-all`}>
               {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : initials}
             </div>
             <svg className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted transition-transform hidden sm:block ${showMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-          </button>
+          </div>
           {showMenu && (
             <div className="fixed sm:absolute right-2 sm:right-0 top-[52px] sm:top-12 w-56 sm:w-64 bg-white border border-line/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-fade-up">
               <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-line/20 bg-gradient-to-r from-cream to-white">
@@ -203,23 +205,18 @@ export default function TopBar({ title, profile }: { title: string; profile: any
                 </div>
               </div>
               <div className="py-1">
-                {[
-                  { label: 'Profile', href: '/profile', icon: '👤' },
-                  { label: 'Edit Profile', href: '/auth/complete-profile', icon: '✏️' },
-                  { label: 'Messages', href: getMessagingLink(), icon: '💬' },
-                  { label: 'Notifications', href: getNotifLink(), icon: '🔔' },
-                ].map(item => (
-                  <Link key={item.label} href={item.href} onClick={() => setShowMenu(false)}
-                    className="flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-ink-soft hover:bg-cream transition-colors">
-                    <span className="text-base sm:text-lg">{item.icon}</span>{item.label}
-                  </Link>
-                ))}
+                <Link href="/profile" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-ink-soft hover:bg-cream transition-colors"><span className="text-base sm:text-lg">👤</span> Profile</Link>
+                <Link href="/profile" onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-ink-soft hover:bg-cream transition-colors"><span className="text-base sm:text-lg">✏️</span> Edit Profile</Link>
+                <Link href={getMessagingLink()} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-ink-soft hover:bg-cream transition-colors"><span className="text-base sm:text-lg">💬</span> Messages</Link>
+                <Link href={getNotifLink()} onClick={() => setShowMenu(false)} className="flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-ink-soft hover:bg-cream transition-colors"><span className="text-base sm:text-lg">🔔</span> Notifications</Link>
               </div>
               <div className="border-t border-line/20 py-1">
-                <button onClick={() => { setShowMenu(false); handleSignOut() }}
-                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-rust hover:bg-rust-soft/30 transition-colors">
+                <div
+                  onClick={() => { setShowMenu(false); handleSignOut() }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm text-rust hover:bg-rust-soft/30 transition-colors cursor-pointer"
+                >
                   <span className="text-base sm:text-lg">🚪</span> Sign out
-                </button>
+                </div>
               </div>
             </div>
           )}

@@ -1,11 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import Feed from '../../founders/feed/Feed'
+import Feed from './Feed'
 
 export const dynamic = 'force-dynamic'
 
-export default async function MentorFeedPage() {
+export default async function FoundersFeedPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return null
+  }
 
   const { data: posts } = await supabase
     .from('posts')
@@ -23,7 +27,7 @@ export default async function MentorFeedPage() {
   const { data: userReactions } = await supabase
     .from('post_reactions')
     .select('post_id, reaction')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
 
   const postIds = (posts || []).map(p => p.id)
   const { data: allReactions } = postIds.length > 0
@@ -36,21 +40,25 @@ export default async function MentorFeedPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single()
+
+  if (!profile) {
+    return null
+  }
 
   const { data: suggestedPeople } = await supabase
     .from('profiles')
     .select('id, full_name, role, headline, company, avatar_url')
     .eq('is_profile_complete', true)
-    .neq('id', user!.id)
+    .neq('id', user.id)
     .in('role', ['founder', 'co-founder', 'freelancer', 'biz-owner'])
     .limit(5)
 
   const { count: postsCount } = await supabase
     .from('posts')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
 
   const reactionMap: Record<string, string> = {}
   ;(userReactions || []).forEach(r => {

@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 
 const ROLE_TAGS: Record<string, string> = {
@@ -21,305 +21,826 @@ function getInitials(name: string) {
 
 function getGradient(seed: string) {
   const gradients = [
-    'from-teal to-teal-dark', 'from-rust to-rust-dark',
-    'from-purple-500 to-indigo-600', 'from-amber-400 to-orange-500',
-    'from-emerald-400 to-teal-600',
+    'from-teal-500 to-teal-600', 'from-orange-500 to-orange-600',
+    'from-purple-500 to-indigo-600', 'from-amber-500 to-orange-600',
+    'from-emerald-500 to-teal-600',
   ]
   const index = (seed || 'U').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   return gradients[index % gradients.length]
 }
 
-type Profile = {
-  id?: string
-  full_name?: string
-  headline?: string
-  role?: string
-  company?: string
-  bio?: string
-  domains?: string[]
-  location?: string
-  skills?: string[]
-  linkedin_url?: string
-  avatar_url?: string
-  posts_count?: number
-  connections_count?: number
-  is_verified?: boolean
-}
-
-export default function ProfileView({ profile }: { profile: Profile | null }) {
+export default function PublicProfileView({
+  profile,
+  viewerProfile,
+  connection,
+}: {
+  profile: any
+  viewerProfile: any
+  connection: any
+}) {
   const router = useRouter()
   const supabase = createClient()
-  const [showShareToast, setShowShareToast] = useState(false)
+  const [currentConnection, setCurrentConnection] = useState(connection)
+  const [busy, setBusy] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [activeTab, setActiveTab] = useState('about')
   const [isEditing, setIsEditing] = useState(false)
-  const [showSaveToast, setShowSaveToast] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [editedProfile, setEditedProfile] = useState<Profile>({
-    full_name: '', headline: '', company: '', bio: '', location: '', linkedin_url: '', domains: [], skills: [], ...profile,
+  const [isViewingOwnProfile, setIsViewingOwnProfile] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadType, setUploadType] = useState<'avatar' | 'cover' | null>(null)
+  
+  // Edit form states
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    headline: '',
+    company: '',
+    location: '',
+    bio: '',
+    skills: [] as string[],
+    domains: [] as string[],
+    linkedin_url: '',
+    email: '',
+    website: '',
+    role: '',
   })
   const [newSkill, setNewSkill] = useState('')
   const [newDomain, setNewDomain] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Image states
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (profile) {
-      setEditedProfile({
-        full_name: profile.full_name || '', headline: profile.headline || '', company: profile.company || '',
-        bio: profile.bio || '', location: profile.location || '', linkedin_url: profile.linkedin_url || '',
-        domains: profile.domains || [], skills: profile.skills || [], avatar_url: profile.avatar_url,
-        id: profile.id, role: profile.role, posts_count: profile.posts_count, connections_count: profile.connections_count, is_verified: profile.is_verified,
+    // Check if viewing own profile
+    if (viewerProfile && profile && viewerProfile.id === profile.id) {
+      setIsViewingOwnProfile(true)
+      // Initialize edit form with profile data
+      setEditForm({
+        full_name: profile.full_name || '',
+        headline: profile.headline || '',
+        company: profile.company || '',
+        location: profile.location || '',
+        bio: profile.bio || '',
+        skills: profile.skills || [],
+        domains: profile.domains || [],
+        linkedin_url: profile.linkedin_url || '',
+        email: profile.email || '',
+        website: profile.website || '',
+        role: profile.role || '',
       })
+      setAvatarUrl(profile.avatar_url || null)
     }
-  }, [profile])
+  }, [profile, viewerProfile])
 
-  if (!profile || !profile.id) {
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-teal/20 to-rust/20 flex items-center justify-center">
-            <svg className="w-10 h-10 text-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-          <h2 className="font-display text-2xl text-ink mb-2">Profile Not Found</h2>
-          <p className="text-sm text-muted mb-6">We could not load your profile.</p>
-          <button onClick={() => router.push('/auth/login')} className="px-6 py-3 bg-teal text-cream rounded-xl text-sm font-medium hover:bg-teal-dark transition-all">
-            Return to Login
-          </button>
-        </div>
-      </div>
-    )
+  function showToast(msg: string, type: 'success' | 'error' = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
   }
 
-  const profileId: string = profile.id
-  const profileRole: string = profile.role || 'founder'
-  const profileIsVerified = !!profile.is_verified
-  const profilePostsCount = profile.posts_count || 0
-  const profileConnectionsCount = profile.connections_count || 0
-
-  async function handleShare() {
-    const url = window.location.origin + '/profile/' + profileId
-    try { await navigator.clipboard.writeText(url); setShowShareToast(true); setTimeout(() => setShowShareToast(false), 2000) }
-    catch { setShowShareToast(true); setTimeout(() => setShowShareToast(false), 2000) }
-  }
-
-  async function handleSave() {
-    setLoading(true)
-    const { error } = await supabase.from('profiles').update({
-      full_name: editedProfile.full_name, headline: editedProfile.headline, company: editedProfile.company,
-      bio: editedProfile.bio, location: editedProfile.location, linkedin_url: editedProfile.linkedin_url,
-      domains: editedProfile.domains || [], skills: editedProfile.skills || [],
-    } as any).eq('id', profileId)
-    if (!error) { setIsEditing(false); setShowSaveToast(true); setTimeout(() => setShowSaveToast(false), 2000); window.location.reload() }
-    setLoading(false)
-  }
-
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const fileExt = file.name.split('.').pop() || 'jpg'
-    const fileName = profileId + '-' + Date.now() + '.' + fileExt
-    const filePath = 'avatars/' + fileName
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file)
-    if (uploadError) return
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
-    await supabase.from('profiles').update({ avatar_url: urlData.publicUrl } as any).eq('id', profileId)
-    setShowSaveToast(true); setTimeout(() => setShowSaveToast(false), 2000); window.location.reload()
-  }
-
-  function addSkill() { const s = editedProfile.skills || []; if (newSkill.trim() && !s.includes(newSkill.trim())) { setEditedProfile({ ...editedProfile, skills: [...s, newSkill.trim()] }); setNewSkill('') } }
-  function removeSkill(skill: string) { setEditedProfile({ ...editedProfile, skills: (editedProfile.skills || []).filter(s => s !== skill) }) }
-  function addDomain() { const d = editedProfile.domains || []; if (newDomain.trim() && !d.includes(newDomain.trim())) { setEditedProfile({ ...editedProfile, domains: [...d, newDomain.trim()] }); setNewDomain('') } }
-  function removeDomain(domain: string) { setEditedProfile({ ...editedProfile, domains: (editedProfile.domains || []).filter(d => d !== domain) }) }
-
-  function getNavForRole(role: string) {
-    if (role === 'mentor') return [
-      { label: 'Feed', icon: '📰', href: '/mentors/feed' }, { label: 'Messages', icon: '💬', href: '/mentors/messaging' },
-      { label: 'Discover', icon: '🔍', href: '/mentors/search' }, { label: 'Profile', icon: '👤', href: '/profile' },
-      { label: 'Alerts', icon: '🔔', href: '/mentors/notifications' }, { label: 'Grow', icon: '📈', href: '/mentors/grow-unit' },
-    ]
-    if (role === 'investor') return [{ label: 'Dashboard', icon: '💎', href: '/investors' }, { label: 'Profile', icon: '👤', href: '/profile' }]
-    return [
-      { label: 'Feed', icon: '📰', href: '/founders/feed' }, { label: 'Messages', icon: '💬', href: '/founders/messaging' },
-      { label: 'Discover', icon: '🔍', href: '/founders/search' }, { label: 'Profile', icon: '👤', href: '/profile' },
-      { label: 'Alerts', icon: '🔔', href: '/founders/notifications' }, { label: 'Grow', icon: '📈', href: '/founders/grow-unit' },
-    ]
-  }
-
-  function getPortalLabel(role: string) { if (role === 'mentor') return 'MENTOR PORTAL'; if (role === 'investor') return 'INVESTOR PORTAL'; return 'FOUNDER PORTAL' }
-  function getDefaultHeadline() { return (ROLE_TAGS[profileRole] || 'MEMBER') + ' · CoFlare Network' }
-  function getRoleColor(role: string) { if (role === 'mentor') return 'bg-rust/10 text-rust border-rust/20'; if (role === 'investor') return 'bg-purple-50 text-purple-600 border-purple-200'; return 'bg-teal-light text-teal-dark border-teal/20' }
-
-  const NAV_ITEMS = getNavForRole(profileRole)
-  const avatarUrl = editedProfile.avatar_url || profile.avatar_url || null
-  const fullName = editedProfile.full_name || profile.full_name || 'User'
+  const viewerRole = viewerProfile?.role || 'founder'
+  const fullName = profile.full_name || 'User'
   const initials = getInitials(fullName)
-  const userGradient = getGradient(fullName)
-  const safeSkills: string[] = editedProfile.skills || []
-  const safeDomains: string[] = editedProfile.domains || []
+  const gradient = getGradient(fullName)
+
+  const status =
+    !currentConnection ? 'none' :
+    currentConnection.status === 'accepted' ? 'accepted' :
+    currentConnection.sender_id === viewerProfile.id ? 'pending_sent' : 'pending_received'
+
+  async function sendRequest() {
+    setBusy(true)
+    try {
+      const { data, error } = await supabase
+        .from('connections')
+        .insert({ sender_id: viewerProfile.id, receiver_id: profile.id, status: 'pending' })
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      if (data) {
+        setCurrentConnection(data)
+        showToast('Connection request sent', 'success')
+      }
+    } catch (error: any) {
+      showToast(error.message || 'Failed to send request', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function acceptRequest() {
+    if (!currentConnection) return
+    setBusy(true)
+    try {
+      const { data, error } = await supabase
+        .from('connections')
+        .update({ status: 'accepted' })
+        .eq('id', currentConnection.id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      if (data) {
+        setCurrentConnection(data)
+        showToast('Connection accepted', 'success')
+      }
+    } catch (error: any) {
+      showToast(error.message || 'Failed to accept request', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function withdrawOrDecline() {
+    if (!currentConnection) return
+    setBusy(true)
+    try {
+      const { error } = await supabase
+        .from('connections')
+        .delete()
+        .eq('id', currentConnection.id)
+      
+      if (error) throw error
+      
+      setCurrentConnection(null)
+      showToast('Removed', 'success')
+    } catch (error: any) {
+      showToast(error.message || 'Failed to remove', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function goToMessage() {
+    const path = viewerRole === 'mentor' ? '/mentors/messaging' : '/founders/messaging'
+    router.push(path + '?to=' + profile.id)
+  }
+
+  async function uploadImage(file: File): Promise<string | null> {
+    if (!file) return null
+    
+    const fileExt = file.name.split('.').pop()
+    const fileName = `avatar_${profile.id}_${Date.now()}.${fileExt}`
+    const filePath = fileName
+    
+    const { error: uploadError } = await supabase.storage
+      .from('profiles')
+      .upload(filePath, file, { upsert: true })
+    
+    if (uploadError) {
+      showToast('Failed to upload image', 'error')
+      return null
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('profiles')
+      .getPublicUrl(filePath)
+    
+    return publicUrl
+  }
+
+  async function handleAvatarUpload() {
+    if (!avatarFile) return
+    
+    setUploading(true)
+    setUploadType('avatar')
+    
+    const publicUrl = await uploadImage(avatarFile)
+    
+    if (publicUrl) {
+      setAvatarUrl(publicUrl)
+      setAvatarPreview(null)
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
+      
+      if (error) {
+        showToast('Failed to update profile picture', 'error')
+      } else {
+        showToast('Profile picture updated!', 'success')
+        if (avatarInputRef.current) {
+          avatarInputRef.current.value = ''
+        }
+        setAvatarFile(null)
+      }
+    }
+    
+    setUploading(false)
+    setUploadType(null)
+  }
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error')
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Image size should be less than 5MB', 'error')
+        return
+      }
+      setAvatarFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => setAvatarPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  async function handleSaveProfile() {
+    setUploading(true)
+    
+    let newAvatarUrl = avatarUrl
+    
+    if (avatarFile) {
+      const uploaded = await uploadImage(avatarFile)
+      if (uploaded) newAvatarUrl = uploaded
+    }
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: editForm.full_name,
+        headline: editForm.headline,
+        company: editForm.company,
+        location: editForm.location,
+        bio: editForm.bio,
+        skills: editForm.skills,
+        domains: editForm.domains,
+        linkedin_url: editForm.linkedin_url,
+        email: editForm.email,
+        website: editForm.website,
+        role: editForm.role,
+        avatar_url: newAvatarUrl,
+      })
+      .eq('id', profile.id)
+    
+    if (error) {
+      showToast('Failed to update profile: ' + error.message, 'error')
+    } else {
+      showToast('Profile updated successfully!', 'success')
+      setIsEditing(false)
+      setAvatarPreview(null)
+      setAvatarFile(null)
+      setAvatarUrl(newAvatarUrl)
+      router.refresh()
+    }
+    setUploading(false)
+  }
+
+  function handleAddSkill() {
+    if (newSkill.trim() && !editForm.skills.includes(newSkill.trim())) {
+      setEditForm(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()]
+      }))
+      setNewSkill('')
+    }
+  }
+
+  function handleRemoveSkill(skill: string) {
+    setEditForm(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }))
+  }
+
+  function handleAddDomain() {
+    if (newDomain.trim() && !editForm.domains.includes(newDomain.trim())) {
+      setEditForm(prev => ({
+        ...prev,
+        domains: [...prev.domains, newDomain.trim()]
+      }))
+      setNewDomain('')
+    }
+  }
+
+  function handleRemoveDomain(domain: string) {
+    setEditForm(prev => ({
+      ...prev,
+      domains: prev.domains.filter(d => d !== domain)
+    }))
+  }
+
+  // Navigation
+  const founderNav = [
+    { label: 'Feed', icon: '📰', href: '/founders/feed' },
+    { label: 'My Network', icon: '👥', href: '/founders/connections' },
+    { label: 'Messages', icon: '💬', href: '/founders/messaging' },
+    { label: 'Discover', icon: '🔍', href: '/founders/search' },
+    { label: 'Profile', icon: '👤', href: '/profile' },
+    { label: 'Alerts', icon: '🔔', href: '/founders/notifications' },
+    { label: 'Grow', icon: '📈', href: '/founders/grow-unit' },
+  ]
+
+  const mentorNav = [
+    { label: 'Feed', icon: '📰', href: '/mentors/feed' },
+    { label: 'My Network', icon: '👥', href: '/mentors/connections' },
+    { label: 'Messages', icon: '💬', href: '/mentors/messaging' },
+    { label: 'Discover', icon: '🔍', href: '/mentors/search' },
+    { label: 'Profile', icon: '👤', href: '/profile' },
+    { label: 'Alerts', icon: '🔔', href: '/mentors/notifications' },
+    { label: 'Grow', icon: '📈', href: '/mentors/grow-unit' },
+  ]
+
+  const NAV = viewerRole === 'mentor' ? mentorNav : founderNav
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-cream via-white to-teal/5 flex flex-col lg:flex-row">
-      <Sidebar navItems={NAV_ITEMS} profile={profile} portalLabel={getPortalLabel(profileRole)} />
+    <div className="min-h-screen w-full bg-white flex flex-col lg:flex-row">
+      <Sidebar 
+        navItems={NAV} 
+        profile={viewerProfile} 
+        portalLabel={viewerRole.toUpperCase() + ' PORTAL'} 
+      />
 
       <main className="flex-1 min-w-0 w-full overflow-x-hidden">
-        <div className="bg-white/80 backdrop-blur border-b border-line/30 px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-          <h1 className="font-display text-lg sm:text-xl text-ink">My Profile</h1>
-          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br ${userGradient} flex items-center justify-center text-cream text-xs font-semibold shadow-md overflow-hidden shrink-0`}>
-            {avatarUrl ? <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover rounded-full" /> : initials}
-          </div>
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <button 
+            onClick={() => router.back()} 
+            className="text-sm text-gray-500 hover:text-teal-600 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          
+          {isViewingOwnProfile && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="px-4 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit Profile
+            </button>
+          )}
+          
+          {isEditing && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setIsEditing(false)
+                  setAvatarPreview(null)
+                  setAvatarFile(null)
+                  // Reset form to original values
+                  setEditForm({
+                    full_name: profile.full_name || '',
+                    headline: profile.headline || '',
+                    company: profile.company || '',
+                    location: profile.location || '',
+                    bio: profile.bio || '',
+                    skills: profile.skills || [],
+                    domains: profile.domains || [],
+                    linkedin_url: profile.linkedin_url || '',
+                    email: profile.email || '',
+                    website: profile.website || '',
+                    role: profile.role || '',
+                  })
+                }}
+                className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={uploading}
+                className="px-4 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {uploading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                Save Changes
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="max-w-6xl mx-auto">
+        {/* Profile Content */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Profile Header */}
+          <div className="flex flex-col items-center text-center mb-8">
+            {/* Avatar */}
+            <div className="relative mb-4">
+              <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                ) : avatarUrl ? (
+                  <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-gray-400">
+                    {initials}
+                  </div>
+                )}
+              </div>
+              
+              {isViewingOwnProfile && isEditing && (
+                <>
+                  <label className="absolute bottom-0 right-0 bg-teal-600 hover:bg-teal-700 text-white p-2 rounded-full cursor-pointer transition-colors shadow-lg">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" ref={avatarInputRef} />
+                  </label>
+                  {avatarFile && (
+                    <button
+                      onClick={handleAvatarUpload}
+                      disabled={uploading && uploadType === 'avatar'}
+                      className="absolute -bottom-1 -right-1 bg-green-600 hover:bg-green-700 text-white p-2 rounded-full shadow-lg transition-colors disabled:opacity-50"
+                    >
+                      {uploading && uploadType === 'avatar' ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+            
+            {/* Edit Mode vs View Mode */}
+            {isEditing ? (
+              <div className="w-full max-w-md space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center text-xl font-bold focus:outline-none focus:border-teal-500"
+                    placeholder="Full Name"
+                  />
+                </div>
+                <div>
+                  <select
+                    value={editForm.role}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                  >
+                    <option value="founder">Founder</option>
+                    <option value="co-founder">Co-Founder</option>
+                    <option value="mentor">Mentor</option>
+                    <option value="investor">Investor</option>
+                    <option value="freelancer">Freelancer</option>
+                    <option value="biz-owner">Biz Owner</option>
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={editForm.headline}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, headline: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    placeholder="Headline (e.g., Tech Entrepreneur)"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={editForm.company}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, company: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    placeholder="Company"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    placeholder="Location"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    placeholder="Email"
+                  />
+                </div>
+                <div>
+                  <input
+                    type="url"
+                    value={editForm.linkedin_url}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, linkedin_url: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    placeholder="LinkedIn URL"
+                  />
+                </div>
+                <div>
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    placeholder="Bio"
+                  />
+                </div>
+                
+                {/* Skills Management */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Skills</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {editForm.skills.map((skill) => (
+                      <span key={skill} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                        {skill}
+                        <button onClick={() => handleRemoveSkill(skill)} className="hover:text-red-600">×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newSkill}
+                      onChange={(e) => setNewSkill(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                      placeholder="Add a skill..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    />
+                    <button onClick={handleAddSkill} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                      Add
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Domains Management */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Domains</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {editForm.domains.map((domain) => (
+                      <span key={domain} className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 rounded-full text-sm">
+                        {domain}
+                        <button onClick={() => handleRemoveDomain(domain)} className="hover:text-red-600">×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newDomain}
+                      onChange={(e) => setNewDomain(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddDomain()}
+                      placeholder="Add a domain..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    />
+                    <button onClick={handleAddDomain} className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{fullName}</h1>
+                <div className="inline-flex items-center gap-2 mb-3">
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                    {ROLE_TAGS[profile.role || ''] || 'MEMBER'}
+                  </span>
+                  {profile.is_verified && (
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Verified
+                    </span>
+                  )}
+                </div>
+                
+                <p className="text-gray-600 text-center max-w-md mb-3">
+                  {profile.headline || (profile.role || '').toUpperCase()}
+                  {profile.company && ` at ${profile.company}`}
+                </p>
+                
+                <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-gray-500">
+                  {profile.location && (
+                    <div className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {profile.location}
+                    </div>
+                  )}
+                  {profile.email && (
+                    <div className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      {profile.email}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
 
-            <div className="flex justify-end mb-4">
-              {!isEditing ? (
-                <button onClick={() => setIsEditing(true)} className="px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-teal to-teal-dark text-cream rounded-xl text-xs sm:text-sm font-medium hover:shadow-lg transition-all flex items-center gap-2">
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.4-9.6a2 2 0 112.8 2.8L11.8 15.2 8 16l.8-3.8L18.6 2.4z"/></svg>
-                  Edit Profile
+          {/* Action Buttons for Non-Owners */}
+          {!isViewingOwnProfile && !isEditing && (
+            <div className="flex justify-center gap-3 mb-8">
+              {status === 'none' && (
+                <button onClick={sendRequest} disabled={busy}
+                  className="px-6 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-50">
+                  {busy ? 'Sending...' : 'Connect'}
                 </button>
-              ) : (
-                <div className="flex gap-2 sm:gap-3">
-                  <button onClick={() => setIsEditing(false)} className="px-4 sm:px-5 py-2 border-2 border-line rounded-xl text-xs sm:text-sm font-medium text-ink-soft hover:bg-cream transition-all">Cancel</button>
-                  <button onClick={handleSave} disabled={loading} className="px-4 sm:px-5 py-2 bg-gradient-to-r from-teal to-teal-dark text-cream rounded-xl text-xs sm:text-sm font-medium hover:shadow-lg disabled:opacity-50 transition-all">{loading ? 'Saving...' : 'Save'}</button>
+              )}
+              {status === 'pending_sent' && (
+                <button onClick={withdrawOrDecline} disabled={busy}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                  Withdraw Request
+                </button>
+              )}
+              {status === 'pending_received' && (
+                <div className="flex gap-2">
+                  <button onClick={acceptRequest} disabled={busy}
+                    className="px-6 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-50">
+                    Accept
+                  </button>
+                  <button onClick={withdrawOrDecline} disabled={busy}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                    Decline
+                  </button>
+                </div>
+              )}
+              {status === 'accepted' && (
+                <div className="flex gap-2">
+                  <button onClick={goToMessage}
+                    className="px-6 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors">
+                    Message
+                  </button>
+                  <button onClick={withdrawOrDecline} disabled={busy}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50">
+                    Remove
+                  </button>
                 </div>
               )}
             </div>
+          )}
 
-            <div className="bg-white border border-line/30 rounded-2xl overflow-hidden shadow-sm mb-6">
-              <div className="h-32 sm:h-40 lg:h-48 relative overflow-hidden bg-gradient-to-r from-ink via-teal-dark to-teal">
-                <div className="absolute inset-0 opacity-20"><div className="absolute top-10 left-10 w-40 h-40 bg-teal/30 rounded-full blur-3xl"/><div className="absolute bottom-0 right-10 w-60 h-60 bg-rust/20 rounded-full blur-3xl"/></div>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+          {/* Tabs - Only show when not editing */}
+          {!isEditing && (
+            <>
+              <div className="border-b border-gray-200 mb-6">
+                <div className="flex gap-8">
+                  {[
+                    { id: 'about', label: 'About' },
+                    { id: 'skills', label: 'Skills & Expertise' },
+                    { id: 'domains', label: 'Domains' },
+                    { id: 'contact', label: 'Contact' },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`pb-3 text-sm font-medium transition-colors relative ${
+                        activeTab === tab.id
+                          ? 'text-teal-600 border-b-2 border-teal-600'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 -mt-12 sm:-mt-14 lg:-mt-16 relative">
-                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-5">
-                  <div className="relative group self-center sm:self-auto">
-                    <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gradient-to-br ${userGradient} ring-4 ring-teal/10`}>
-                      {avatarUrl ? <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" /> : <span className="text-cream text-2xl sm:text-3xl font-semibold">{initials}</span>}
+
+              {/* Tab Content */}
+              <div className="space-y-6">
+                {/* About Section */}
+                {activeTab === 'about' && profile.bio && (
+                  <div className="bg-white rounded-lg">
+                    <p className="text-gray-700 leading-relaxed">{profile.bio}</p>
+                  </div>
+                )}
+
+                {/* Skills Section */}
+                {activeTab === 'skills' && (
+                  <div className="bg-white rounded-lg">
+                    <div className="flex flex-wrap gap-2">
+                      {(profile.skills || []).map((skill: string) => (
+                        <span 
+                          key={skill} 
+                          className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {(profile.skills || []).length === 0 && (
+                        <p className="text-gray-500">No skills added yet</p>
+                      )}
                     </div>
-                    {isEditing && (
-                      <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 w-8 h-8 bg-teal rounded-full flex items-center justify-center shadow-lg hover:bg-teal-dark transition-all text-cream text-xs font-bold">+</button>
+                  </div>
+                )}
+
+                {/* Domains Section */}
+                {activeTab === 'domains' && (
+                  <div className="bg-white rounded-lg">
+                    <div className="flex flex-wrap gap-2">
+                      {(profile.domains || []).map((domain: string) => (
+                        <span 
+                          key={domain} 
+                          className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm border border-orange-200"
+                        >
+                          {domain}
+                        </span>
+                      ))}
+                      {(profile.domains || []).length === 0 && (
+                        <p className="text-gray-500">No domains added yet</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Contact Section */}
+                {activeTab === 'contact' && (
+                  <div className="space-y-3">
+                    {profile.linkedin_url && (
+                      <a 
+                        href={profile.linkedin_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#0A66C2]/10 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-[#0A66C2]" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">LinkedIn</h3>
+                            <p className="text-sm text-gray-500">Connect professionally</p>
+                          </div>
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
+
+                    {profile.email && (
+                      <a 
+                        href={`mailto:${profile.email}`}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">Email</h3>
+                            <p className="text-sm text-gray-500">{profile.email}</p>
+                          </div>
+                        </div>
+                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
                     )}
                   </div>
-                  <div className="flex gap-2 justify-center sm:justify-end">
-                    <button onClick={handleShare} className="px-3 sm:px-4 py-2 border-2 border-line rounded-xl text-xs sm:text-sm text-ink-soft hover:bg-cream transition-all">Share</button>
-                  </div>
-                </div>
-
-                <div className="text-center sm:text-left">
-                  {isEditing ? (
-                    <>
-                      <div className="flex items-center gap-2 justify-center sm:justify-start mb-2 flex-wrap">
-                        <input type="text" value={editedProfile.full_name || ''} onChange={e => setEditedProfile({ ...editedProfile, full_name: e.target.value })}
-                          className="font-display text-xl sm:text-2xl lg:text-3xl text-ink bg-cream border-2 border-line/50 rounded-lg px-3 py-1 outline-none focus:border-teal" placeholder="Full Name" />
-                        {profileIsVerified && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-light text-teal-dark border border-teal/20">VERIFIED</span>}
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getRoleColor(profileRole)}`}>{ROLE_TAGS[profileRole] || 'MEMBER'}</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input type="text" value={editedProfile.headline || ''} onChange={e => setEditedProfile({ ...editedProfile, headline: e.target.value })}
-                          className="text-sm text-ink-soft bg-cream border-2 border-line/50 rounded-lg px-3 py-1 outline-none focus:border-teal" placeholder="Headline" />
-                        <input type="text" value={editedProfile.company || ''} onChange={e => setEditedProfile({ ...editedProfile, company: e.target.value })}
-                          className="text-sm text-ink-soft bg-cream border-2 border-line/50 rounded-lg px-3 py-1 outline-none focus:border-teal" placeholder="Company" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start mb-1">
-                        <h1 className="font-display text-xl sm:text-2xl lg:text-3xl text-ink">{fullName}</h1>
-                        {profileIsVerified && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-light text-teal-dark border border-teal/20">VERIFIED</span>}
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getRoleColor(profileRole)}`}>{ROLE_TAGS[profileRole] || 'MEMBER'}</span>
-                      </div>
-                      <p className="text-sm text-ink-soft">{editedProfile.headline || getDefaultHeadline()}{editedProfile.company && <span> at <span className="text-teal font-semibold">{editedProfile.company}</span></span>}</p>
-                    </>
-                  )}
-                </div>
+                )}
               </div>
-            </div>
-
-            <div className="grid lg:grid-cols-[1fr_320px] gap-4 sm:gap-6">
-              <div className="space-y-4 sm:space-y-6">
-                <div className="bg-white border border-line/30 rounded-2xl p-4 sm:p-6 shadow-sm">
-                  <h2 className="font-display text-base sm:text-lg text-ink mb-3 sm:mb-4">About Me</h2>
-                  {isEditing ? (
-                    <textarea value={editedProfile.bio || ''} onChange={e => setEditedProfile({ ...editedProfile, bio: e.target.value })} rows={6}
-                      className="w-full bg-cream border-2 border-line/50 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal transition-all resize-none" placeholder="Tell your story..." />
-                  ) : (
-                    <p className="text-sm text-ink-soft leading-relaxed whitespace-pre-line">{editedProfile.bio || 'No bio added yet.'}</p>
-                  )}
-                </div>
-
-                <div className="bg-white border border-line/30 rounded-2xl p-4 sm:p-6 shadow-sm">
-                  <h2 className="font-display text-base sm:text-lg text-ink mb-3 sm:mb-4">Skills</h2>
-                  {isEditing ? (
-                    <div>
-                      <div className="flex gap-2 mb-3">
-                        <input type="text" value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                          placeholder="Add a skill" className="flex-1 bg-cream border-2 border-line/50 rounded-xl px-4 py-2 text-sm outline-none focus:border-teal" />
-                        <button onClick={addSkill} className="px-4 py-2 bg-teal text-cream rounded-xl text-sm font-medium hover:bg-teal-dark transition-all">Add</button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">{safeSkills.map(skill => <span key={skill} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-light/50 text-teal-dark rounded-lg text-sm border border-teal/20">{skill}<button onClick={() => removeSkill(skill)} className="text-teal/50 hover:text-rust text-xs">×</button></span>)}</div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">{safeSkills.length === 0 ? <p className="text-sm text-muted">No skills added</p> : safeSkills.map(skill => <span key={skill} className="px-3 py-1.5 bg-cream border border-line/30 rounded-lg text-sm text-ink-soft">{skill}</span>)}</div>
-                  )}
-                </div>
-
-                <div className="bg-white border border-line/30 rounded-2xl p-4 sm:p-6 shadow-sm">
-                  <h2 className="font-display text-base sm:text-lg text-ink mb-3 sm:mb-4">Domains</h2>
-                  {isEditing ? (
-                    <div>
-                      <div className="flex gap-2 mb-3">
-                        <input type="text" value={newDomain} onChange={e => setNewDomain(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addDomain())}
-                          placeholder="Add a domain" className="flex-1 bg-cream border-2 border-line/50 rounded-xl px-4 py-2 text-sm outline-none focus:border-teal" />
-                        <button onClick={addDomain} className="px-4 py-2 bg-teal text-cream rounded-xl text-sm font-medium hover:bg-teal-dark transition-all">Add</button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">{safeDomains.map(domain => <span key={domain} className="inline-flex items-center gap-1 px-3 py-1.5 bg-rust/10 text-rust rounded-lg text-sm border border-rust/20">{domain}<button onClick={() => removeDomain(domain)} className="text-rust/50 hover:text-rust text-xs">×</button></span>)}</div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">{safeDomains.length === 0 ? <p className="text-sm text-muted">No domains added</p> : safeDomains.map(domain => <span key={domain} className="px-3 py-1.5 bg-rust/10 text-rust rounded-lg text-sm border border-rust/20">{domain}</span>)}</div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                  <div className="bg-white border border-line/30 rounded-2xl p-4 sm:p-6 shadow-sm">
-                    <h2 className="font-display text-base sm:text-lg text-ink mb-3 sm:mb-4">Location</h2>
-                    {isEditing ? <input type="text" value={editedProfile.location || ''} onChange={e => setEditedProfile({ ...editedProfile, location: e.target.value })} placeholder="City, State" className="w-full bg-cream border-2 border-line/50 rounded-xl px-4 py-2 text-sm outline-none focus:border-teal" />
-                      : <p className="text-sm text-ink-soft">{editedProfile.location || 'Not specified'}</p>}
-                  </div>
-                  <div className="bg-white border border-line/30 rounded-2xl p-4 sm:p-6 shadow-sm">
-                    <h2 className="font-display text-base sm:text-lg text-ink mb-3 sm:mb-4">LinkedIn</h2>
-                    {isEditing ? <input type="url" value={editedProfile.linkedin_url || ''} onChange={e => setEditedProfile({ ...editedProfile, linkedin_url: e.target.value })} placeholder="https://linkedin.com/in/..." className="w-full bg-cream border-2 border-line/50 rounded-xl px-4 py-2 text-sm outline-none focus:border-teal" />
-                      : editedProfile.linkedin_url ? <a href={editedProfile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-sm text-teal hover:text-teal-dark break-all">{editedProfile.linkedin_url}</a> : <p className="text-sm text-muted">Not added</p>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 sm:space-y-5">
-                <div className="bg-gradient-to-br from-ink to-ink-soft text-cream rounded-2xl p-5 sm:p-6 shadow-xl">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-cream/50 font-semibold">Network Insights</span>
-                  <div className="space-y-4 mt-4">
-                    {[{ label: 'Posts', value: profilePostsCount, color: 'text-teal' }, { label: 'Connections', value: profileConnectionsCount, color: 'text-rust' }, { label: 'Views', value: 0, color: 'text-purple-400' }].map(item => (
-                      <div key={item.label} className="flex items-center justify-between"><span className="text-xs text-cream/60">{item.label}</span><span className={`font-display text-xl sm:text-2xl font-semibold ${item.color}`}>{item.value}</span></div>
-                    ))}
-                  </div>
-                </div>
-                <Link href={profileRole === 'mentor' ? '/mentors/feed' : profileRole === 'investor' ? '/investors' : '/founders/feed'}
-                  className="flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-teal to-teal-dark text-cream rounded-2xl text-sm font-medium hover:shadow-xl transition-all">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>Create Post
-                </Link>
-                <div className="bg-white border border-line/30 rounded-2xl p-4 sm:p-6 shadow-sm text-center">
-                  <h3 className="font-semibold text-ink mb-1">Share Profile</h3>
-                  <p className="text-xs text-muted mb-4">Let others discover you</p>
-                  <button onClick={handleShare} className="w-full py-2.5 bg-cream border border-line/50 text-ink-soft rounded-xl text-sm font-medium hover:bg-cream-dark transition-all">Copy Link</button>
-                </div>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </main>
 
-      {showShareToast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink text-cream px-5 py-3 rounded-2xl shadow-2xl text-sm font-medium z-50 animate-fade-up">Profile link copied!</div>}
-      {showSaveToast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink text-cream px-5 py-3 rounded-2xl shadow-2xl text-sm font-medium z-50 animate-fade-up">Profile updated!</div>}
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className={`px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-gray-900 text-white' : 'bg-red-600 text-white'
+          }`}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {toast.type === 'success' ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              )}
+            </svg>
+            {toast.msg}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

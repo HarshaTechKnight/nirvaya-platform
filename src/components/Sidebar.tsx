@@ -23,7 +23,6 @@ function getGradient(seed: string) {
     'from-purple-500 to-indigo-600',
     'from-amber-400 to-orange-500',
     'from-emerald-400 to-teal-600',
-    'from-pink-400 to-rose-500',
   ]
   const index = (seed || 'U').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
   return gradients[index % gradients.length]
@@ -45,6 +44,13 @@ function NavIcon({ label, active }: { label: string; active: boolean }) {
       return (
         <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={strokeWidth}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      )
+    case 'My Network':
+    case 'Network':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={strokeWidth}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
       )
     case 'Discover':
@@ -123,7 +129,6 @@ export default function Sidebar({
   const userGradient = getGradient(profile?.full_name || 'U')
   const initials = getInitials(profile?.full_name || '')
   const avatarUrl = profile?.avatar_url || null
-  const totalUnread = navItems.reduce((sum, item) => sum + (item.badge || 0), 0)
 
   const sidebarContent = (
     <div className="w-64 bg-white border-r border-line/40 flex flex-col min-h-full">
@@ -143,7 +148,6 @@ export default function Sidebar({
             </div>
           </Link>
           
-          {/* Mobile close button */}
           <button
             onClick={() => setMobileMenuOpen(false)}
             className="lg:hidden w-8 h-8 rounded-lg hover:bg-cream-dark flex items-center justify-center text-muted"
@@ -194,50 +198,63 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* User Section */}
+      {/* User Section - Using div instead of button to avoid nesting */}
       <div className="border-t border-line/20 p-4">
-        <button
-          onClick={() => setShowUserMenu(!showUserMenu)}
-          className="relative w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-cream-dark/40 transition-all group"
-        >
-          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${userGradient} flex items-center justify-center text-cream text-xs font-semibold shadow-md group-hover:shadow-lg transition-all shrink-0 overflow-hidden`}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="w-full h-full object-cover rounded-full" />
-            ) : (
-              initials
-            )}
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <div className="text-sm font-semibold text-ink truncate">{profile?.full_name || 'User'}</div>
-            <div className={`text-[10px] uppercase tracking-wider font-medium ${
-              profile?.role === 'mentor' ? 'text-rust' : profile?.role === 'investor' ? 'text-purple-600' : 'text-teal'
-            }`}>
-              {profile?.role || 'member'}
+        <div className="relative">
+          <div
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-cream-dark/40 transition-all group cursor-pointer"
+          >
+            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${userGradient} flex items-center justify-center text-cream text-xs font-semibold shadow-md group-hover:shadow-lg transition-all shrink-0 overflow-hidden`}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                initials
+              )}
             </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-sm font-semibold text-ink truncate">{profile?.full_name || 'User'}</div>
+              <div className={`text-[10px] uppercase tracking-wider font-medium ${
+                profile?.role === 'mentor' ? 'text-rust' : profile?.role === 'investor' ? 'text-purple-600' : 'text-teal'
+              }`}>
+                {profile?.role || 'member'}
+              </div>
+            </div>
+            <svg className={`w-4 h-4 text-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </div>
-          <svg className={`w-4 h-4 text-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
 
-          {/* Dropdown */}
+          {/* Dropdown Menu */}
           {showUserMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-line rounded-2xl shadow-2xl z-20 overflow-hidden py-1 animate-fade-up">
-                <Link href="/profile" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-soft hover:bg-cream transition-colors">
+                <Link
+                  href="/profile"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-soft hover:bg-cream transition-colors"
+                >
                   <span>👤</span> View Profile
                 </Link>
-                <Link href="/auth/complete-profile" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-soft hover:bg-cream transition-colors">
+                <Link
+                  href="/profile"
+                  onClick={() => setShowUserMenu(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink-soft hover:bg-cream transition-colors"
+                >
                   <span>✏️</span> Edit Profile
                 </Link>
                 <div className="h-px bg-line/50 my-1" />
-                <button onClick={() => { setShowUserMenu(false); handleSignOut() }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rust hover:bg-rust-soft/30 transition-colors">
+                <div
+                  onClick={() => { setShowUserMenu(false); handleSignOut() }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rust hover:bg-rust-soft/30 transition-colors cursor-pointer"
+                >
                   <span>🚪</span> Sign Out
-                </button>
+                </div>
               </div>
             </>
           )}
-        </button>
+        </div>
       </div>
     </div>
   )
@@ -252,11 +269,6 @@ export default function Sidebar({
         <svg className="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-        {totalUnread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-rust text-cream text-[9px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-sm">
-            {totalUnread > 9 ? '9+' : totalUnread}
-          </span>
-        )}
       </button>
 
       {/* Desktop sidebar */}
@@ -264,7 +276,7 @@ export default function Sidebar({
         {sidebarContent}
       </aside>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-ink/50 backdrop-blur-sm z-40"

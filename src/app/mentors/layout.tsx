@@ -3,13 +3,13 @@ import { redirect } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 
 const MENTOR_NAV = [
-  { label: 'Feed', icon: '📰', href: '/founders/feed' },
-  { label: 'Messaging', icon: '💬', href: '/founders/messaging' },
-  { label: 'Search', icon: '🔍', href: '/founders/search' },
-  { label: 'Profile', icon: '👤', href: '/profile' },
-  { label: 'Notifications', icon: '🔔', href: '/founders/notifications' },
-  { label: 'Grow', icon: '📈', href: '/founders/grow-unit' },
-  
+  { label: 'Feed', icon: 'F', href: '/mentors/feed' },
+  { label: 'Messaging', icon: 'M', href: '/mentors/messaging' },
+  { label: 'Connections', icon: 'C', href: '/mentors/connections' },
+  { label: 'Find Founders', icon: 'S', href: '/mentors/search' },
+  { label: 'Profile', icon: 'P', href: '/profile' },
+  { label: 'Notifications', icon: 'N', href: '/mentors/notifications' },
+  { label: 'Grow Unit', icon: 'G', href: '/mentors/grow-unit' },
 ]
 
 export default async function MentorsLayout({ children }: { children: React.ReactNode }) {
