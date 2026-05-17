@@ -103,7 +103,7 @@ export default function Feed({
   const [repostModalPost, setRepostModalPost] = useState<Post | null>(null)
   const [repostDraft, setRepostDraft] = useState('')
   const [reposting, setReposting] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({})
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [expandedComments, setExpandedComments] = useState<Record<string, Comment[]>>({})
@@ -116,7 +116,10 @@ export default function Feed({
   const messagingPath = currentUser?.role === 'mentor' ? '/mentors/messaging' : '/founders/messaging'
   const feedPath = currentUser?.role === 'mentor' ? '/mentors/feed' : '/founders/feed'
 
-  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500) }
+  function showToast(msg: string, type: 'success' | 'error' = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 2500)
+  }
 
   // Fetch comment counts
   useEffect(() => {
@@ -150,23 +153,9 @@ export default function Feed({
   async function fetchComments(postId: string) {
     if (loadingComments[postId] || expandedComments[postId]) return
     
-    setLoadingComments(prev => ({ ...prev, [postId]: true }))
+    setLoadingComments((prev: Record<string, boolean>) => ({ ...prev, [postId]: true }))
     
     try {
-      // First check if comments table exists and has data
-      const { data: tableCheck, error: tableError } = await supabase
-        .from('comments')
-        .select('id')
-        .limit(1)
-      
-      if (tableError) {
-        console.error('Comments table may not exist:', tableError)
-        setExpandedComments(prev => ({ ...prev, [postId]: [] }))
-        setLoadingComments(prev => ({ ...prev, [postId]: false }))
-        return
-      }
-      
-      // Fetch comments with profiles
       const { data, error } = await supabase
         .from('comments')
         .select(`
@@ -189,21 +178,21 @@ export default function Feed({
       
       if (error) {
         console.error('Error fetching comments:', error)
-        showToast('Failed to load comments')
-        setExpandedComments(prev => ({ ...prev, [postId]: [] }))
+        showToast('Failed to load comments', 'error')
+        setExpandedComments((prev: Record<string, Comment[]>) => ({ ...prev, [postId]: [] }))
       } else if (data) {
         const commentsWithProfiles = data.map(comment => ({
           ...comment,
           profiles: comment.profiles as unknown as Profile
         })) as Comment[]
-        setExpandedComments(prev => ({ ...prev, [postId]: commentsWithProfiles }))
+        setExpandedComments((prev: Record<string, Comment[]>) => ({ ...prev, [postId]: commentsWithProfiles }))
       }
     } catch (err) {
       console.error('Unexpected error fetching comments:', err)
-      showToast('Failed to load comments')
-      setExpandedComments(prev => ({ ...prev, [postId]: [] }))
+      showToast('Failed to load comments', 'error')
+      setExpandedComments((prev: Record<string, Comment[]>) => ({ ...prev, [postId]: [] }))
     } finally {
-      setLoadingComments(prev => ({ ...prev, [postId]: false }))
+      setLoadingComments((prev: Record<string, boolean>) => ({ ...prev, [postId]: false }))
     }
   }
 
@@ -212,7 +201,7 @@ export default function Feed({
     const content = commentInputs[postId]?.trim()
     if (!content) return
     
-    setSubmittingComment(prev => ({ ...prev, [postId]: true }))
+    setSubmittingComment((prev: Record<string, boolean>) => ({ ...prev, [postId]: true }))
     
     try {
       const { data, error } = await supabase
@@ -228,47 +217,38 @@ export default function Feed({
       
       if (error) {
         console.error('Error posting comment:', error)
-        showToast('Failed to post comment: ' + error.message)
+        showToast('Failed to post comment: ' + error.message, 'error')
       } else if (data) {
-        // Add profile info to the comment
         const commentWithProfile: Comment = {
           ...data,
           profiles: currentUser
         }
         
-        // Update comment count
-        setCommentCounts(prev => ({ 
+        setCommentCounts((prev: Record<string, number>) => ({ 
           ...prev, 
           [postId]: (prev[postId] || 0) + 1 
         }))
         
-        // Update posts comments_count
-        setPosts(prev => prev.map(p => 
+        setPosts((prev: Post[]) => prev.map(p => 
           p.id === postId 
             ? { ...p, comments_count: (p.comments_count || 0) + 1 }
             : p
         ))
         
-        // Add to expanded comments if open
-        if (expandedComments[postId]) {
-          setExpandedComments(prev => ({
-            ...prev,
-            [postId]: [...prev[postId], commentWithProfile]
-          }))
-        } else {
-          // If not expanded, just update the count
-          setExpandedComments(prev => ({ ...prev, [postId]: [commentWithProfile] }))
-        }
+        // FIXED: Safely update expandedComments
+        setExpandedComments((prev: Record<string, Comment[]>) => {
+          const existingComments = prev[postId] || []
+          return { ...prev, [postId]: [...existingComments, commentWithProfile] }
+        })
         
-        // Clear input
-        setCommentInputs(prev => ({ ...prev, [postId]: '' }))
-        showToast('Comment posted!')
+        setCommentInputs((prev: Record<string, string>) => ({ ...prev, [postId]: '' }))
+        showToast('Comment posted!', 'success')
       }
     } catch (err) {
       console.error('Unexpected error posting comment:', err)
-      showToast('Failed to post comment')
+      showToast('Failed to post comment', 'error')
     } finally {
-      setSubmittingComment(prev => ({ ...prev, [postId]: false }))
+      setSubmittingComment((prev: Record<string, boolean>) => ({ ...prev, [postId]: false }))
     }
   }
 
@@ -318,8 +298,8 @@ export default function Feed({
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) { showToast('Please select an image'); return }
-    if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB)'); return }
+    if (!file.type.startsWith('image/')) { showToast('Please select an image', 'error'); return }
+    if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB)', 'error'); return }
     setImageFile(file)
     const reader = new FileReader()
     reader.onloadend = () => setImagePreview(reader.result as string)
@@ -335,10 +315,10 @@ export default function Feed({
   async function uploadImage(): Promise<string | null> {
     if (!imageFile) return null
     const ext = imageFile.name.split('.').pop() || 'jpg'
-    const path = 'posts/' + currentUser.id + '/' + Date.now() + '.' + ext
+    const path = `posts/${currentUser.id}/${Date.now()}.${ext}`
     const { error } = await supabase.storage.from('posts').upload(path, imageFile)
     if (error) {
-      showToast('Upload failed: ' + error.message)
+      showToast('Upload failed: ' + error.message, 'error')
       return null
     }
     const { data } = supabase.storage.from('posts').getPublicUrl(path)
@@ -346,8 +326,8 @@ export default function Feed({
   }
 
   async function handlePost() {
-    if (!draft.trim() && !imageFile) { showToast('Add content or image'); return }
-    if (!currentUser?.id) { showToast('Not logged in'); return }
+    if (!draft.trim() && !imageFile) { showToast('Add content or image', 'error'); return }
+    if (!currentUser?.id) { showToast('Not logged in', 'error'); return }
     setPosting(true)
 
     let imageUrl: string | null = null
@@ -383,14 +363,14 @@ export default function Feed({
 
     if (error) {
       console.error('Post error:', error)
-      showToast('Failed: ' + error.message)
+      showToast('Failed: ' + error.message, 'error')
     } else if (data) {
       setPosts([data as Post, ...posts])
       setDraft('')
       setTags('')
       clearImage()
       setComposerOpen(false)
-      showToast('Posted')
+      showToast('Posted!', 'success')
     }
     setPosting(false)
   }
@@ -450,8 +430,8 @@ export default function Feed({
       `)
       .single()
 
-    if (error) showToast('Failed: ' + error.message)
-    else if (data) { setPosts([data as Post, ...posts]); showToast('Reposted') }
+    if (error) showToast('Failed: ' + error.message, 'error')
+    else if (data) { setPosts([data as Post, ...posts]); showToast('Reposted!', 'success') }
   }
 
   async function repostWithThoughts() {
@@ -490,12 +470,12 @@ export default function Feed({
       `)
       .single()
 
-    if (error) showToast('Failed: ' + error.message)
+    if (error) showToast('Failed: ' + error.message, 'error')
     else if (data) {
       setPosts([data as Post, ...posts])
       setRepostModalPost(null)
       setRepostDraft('')
-      showToast('Posted')
+      showToast('Posted!', 'success')
     }
     setReposting(false)
   }
@@ -505,8 +485,8 @@ export default function Feed({
     setMenuPosition(null)
     if (!confirm('Delete this post?')) return
     const { error } = await supabase.from('posts').delete().eq('id', postId)
-    if (error) showToast('Failed: ' + error.message)
-    else { setPosts(prev => prev.filter(p => p.id !== postId)); showToast('Deleted') }
+    if (error) showToast('Failed: ' + error.message, 'error')
+    else { setPosts(prev => prev.filter(p => p.id !== postId)); showToast('Deleted', 'success') }
   }
 
   function copyLink(postId: string) {
@@ -514,7 +494,7 @@ export default function Feed({
     setMenuPosition(null)
     const url = window.location.origin + feedPath + '/' + postId
     navigator.clipboard.writeText(url)
-    showToast('Link copied')
+    showToast('Link copied!', 'success')
   }
 
   function toggleSave(postId: string) {
@@ -522,7 +502,22 @@ export default function Feed({
     setMenuPosition(null)
     const willSave = !savedPosts[postId]
     setSavedPosts(prev => ({ ...prev, [postId]: willSave }))
-    showToast(willSave ? 'Saved' : 'Removed from saved')
+    showToast(willSave ? 'Saved!' : 'Removed from saved', 'success')
+  }
+
+  // Function to toggle comments visibility
+  const toggleComments = (postId: string) => {
+    if (!expandedComments[postId]) {
+      fetchComments(postId)
+    }
+    setExpandedComments((prev: Record<string, Comment[]>) => {
+      if (prev[postId]) {
+        const { [postId]: _, ...rest } = prev
+        return rest
+      } else {
+        return { ...prev, [postId]: prev[postId] || [] }
+      }
+    })
   }
 
   return (
@@ -532,7 +527,7 @@ export default function Feed({
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_300px] gap-4 lg:gap-6">
 
-          {/* LEFT — PROFILE CARD */}
+          {/* LEFT — Profile Card */}
           <div className="hidden lg:block">
             <div className="bg-white border border-line/30 rounded-2xl overflow-hidden shadow-sm sticky top-20">
               <div className="h-16 bg-gradient-to-r from-teal to-teal-dark" />
@@ -555,7 +550,7 @@ export default function Feed({
             </div>
           </div>
 
-          {/* CENTER */}
+          {/* CENTER — Composer + Posts */}
           <div className="space-y-3 sm:space-y-4 min-w-0">
 
             {/* COMPOSER */}
@@ -731,10 +726,7 @@ export default function Feed({
                         <div className="mt-3 pt-2 flex items-center justify-between text-[10px] sm:text-xs text-muted border-t border-line/20">
                           <span>{post.reactions_count > 0 ? (post.reactions_count + ' reaction' + (post.reactions_count !== 1 ? 's' : '')) : ''}</span>
                           <button 
-                            onClick={() => {
-                              if (!isExpanded) fetchComments(post.id)
-                              setExpandedComments(prev => ({ ...prev, [post.id]: isExpanded ? undefined : prev[post.id] }))
-                            }}
+                            onClick={() => toggleComments(post.id)}
                             className="hover:text-teal transition-colors"
                           >
                             {commentCount > 0 ? (commentCount + ' comment' + (commentCount !== 1 ? 's' : '')) : ''}
@@ -772,8 +764,10 @@ export default function Feed({
                         {/* COMMENT BUTTON */}
                         <button
                           onClick={() => {
-                            if (!isExpanded) fetchComments(post.id)
-                            setExpandedComments(prev => ({ ...prev, [post.id]: isExpanded ? undefined : prev[post.id] }))
+                            if (!expandedComments[post.id]) {
+                              fetchComments(post.id)
+                            }
+                            toggleComments(post.id)
                             setTimeout(() => {
                               const input = document.getElementById(`comment-input-${post.id}`)
                               input?.focus()
@@ -862,7 +856,7 @@ export default function Feed({
                                 id={`comment-input-${post.id}`}
                                 type="text"
                                 value={commentInput}
-                                onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                onChange={(e) => setCommentInputs((prev: Record<string, string>) => ({ ...prev, [post.id]: e.target.value }))}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey && commentInput.trim()) {
                                     e.preventDefault()
@@ -929,12 +923,12 @@ export default function Feed({
       {showMenu && menuPosition && (
         <>
           <div
-            className="fixed inset-0 z-[100]"
+            className="fixed inset-0 z-50"
             onClick={() => { setShowMenu(null); setMenuPosition(null) }}
           />
 
           <div
-            className="post-menu-dropdown fixed z-[110] w-52 bg-white border border-line rounded-xl shadow-2xl overflow-hidden py-1"
+            className="post-menu-dropdown fixed z-50 w-52 bg-white border border-line rounded-xl shadow-2xl overflow-hidden py-1"
             style={{
               top: menuPosition.top + 'px',
               right: menuPosition.right + 'px',
@@ -971,7 +965,7 @@ export default function Feed({
 
       {/* REPOST MODAL */}
       {repostModalPost && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm" onClick={() => { setRepostModalPost(null); setRepostDraft('') }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm" onClick={() => { setRepostModalPost(null); setRepostDraft('') }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-line/30 flex items-center justify-between">
               <h3 className="font-display text-lg text-ink">Repost with thoughts</h3>
@@ -1005,8 +999,19 @@ export default function Feed({
 
       {/* TOAST */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gradient-to-r from-ink to-ink-soft text-cream px-5 py-3 rounded-2xl shadow-2xl text-sm font-medium z-[130] whitespace-nowrap">
-          {toast}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className={`px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-gray-900 text-white' : 'bg-red-600 text-white'
+          }`}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              {toast.type === 'success' ? (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              )}
+            </svg>
+            {toast.msg}
+          </div>
         </div>
       )}
     </div>

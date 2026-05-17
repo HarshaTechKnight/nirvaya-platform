@@ -136,11 +136,12 @@ export default function Sidebar({
       {/* Logo */}
       <div className="px-5 pt-6 pb-4 border-b border-line/20">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal to-teal-dark flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all">
-              <svg className="w-5 h-5 text-cream" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+          <Link href="/founders/feed" className="flex items-center gap-2.5 group">
+            <div className="relative">
+              <div className="absolute -inset-2 bg-gradient-to-r from-teal-500/30 to-orange-500/30 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg group-hover:shadow-2xl group-hover:rotate-12 transition-all duration-300">
+                <img src="/coflare-logo.jpeg" alt="" />
+              </div>
             </div>
             <div>
               <span className="font-display text-xl text-ink font-semibold tracking-tight">CoFlare</span>
